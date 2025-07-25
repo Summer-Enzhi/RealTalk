@@ -52,7 +52,6 @@ fastcore==1.8.1
 fastprogress==1.0.3
 filelock==3.13.1
 fire==0.7.0
-flash_attn
 flatbuffers==25.2.10
 fonttools==4.57.0
 frozendict==2.4.6

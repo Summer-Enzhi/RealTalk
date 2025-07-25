@@ -91,7 +91,7 @@ def main():
     parser.add_argument('--modality', type=str, default='fix', choices=['audio', 'text', 'ttft', 'fix'])
     parser.add_argument('--task', type=str, default='IC')
     args = parser.parse_args()
-
+    use_context = False
 
     with open(args.data, 'r') as file:
         data = json.load(file)
@@ -119,7 +119,7 @@ def main():
                 }]
             })
             
-            if context != []:
+            if context != [] and use_context:
                 start = 0
                 end = int(float(context[-1]['hdTimeEnd']) * 1000)
                 audio_file_his = process_segment(main_audio, start, end)
@@ -178,7 +178,7 @@ def main():
                 }]
             })
             
-            if context != [] and not error:
+            if context != [] and not error and use_context:
                 contents_his = [("audio",audio_file_his), ("text","以上是对话历史上下文。")]
                 
                 for type, content in contents_his:
@@ -239,32 +239,33 @@ def main():
             })
             
             context_text = ""
-            for single in context:
-                start = int(float(single['hdTimeStart']) * 1000)
-                end = int(float(single['hdTimeEnd']) * 1000)
-                audio_file_his = process_segment(main_audio, start, end)
-                if single['roleID'] == 1:
-                    role = 'user'
-                else:
-                    role = 'assistant'
-                    
-                if args.model == 'gpt4o_mini' and role == 'assistant':
-                    conversation_history.append({
-                        'role': role,
-                        'content':[{
-                            'type':"text",
-                            "text":clean_text(single['text'])
-                        }]
-                    })
-                else:
-                    conversation_history.append({
-                        'role': role,
-                        'content':[{
-                            'type':"audio",
-                            "audio":audio_file_his
-                        }]
-                    })
-                context_text += f"{role}: {single['text']}\n"
+            if use_context:
+                for single in context:
+                    start = int(float(single['hdTimeStart']) * 1000)
+                    end = int(float(single['hdTimeEnd']) * 1000)
+                    audio_file_his = process_segment(main_audio, start, end)
+                    if single['roleID'] == 1:
+                        role = 'user'
+                    else:
+                        role = 'assistant'
+                        
+                    if args.model == 'gpt4o_mini' and role == 'assistant':
+                        conversation_history.append({
+                            'role': role,
+                            'content':[{
+                                'type':"text",
+                                "text":clean_text(single['text'])
+                            }]
+                        })
+                    else:
+                        conversation_history.append({
+                            'role': role,
+                            'content':[{
+                                'type':"audio",
+                                "audio":audio_file_his
+                            }]
+                        })
+                    context_text += f"{role}: {single['text']}\n"
             
             start = int(float(item['original_data']['hdTimeStart']) * 1000)
             end = int(float(item['original_data']['hdTimeEnd']) * 1000)
@@ -310,47 +311,48 @@ def main():
             
             context_text = ""
             idx = 0
-            for single in context:
-                role = 'user' if single['roleID'] == 1 else 'assistant'
+            if use_context:
+                for single in context:
+                    role = 'user' if single['roleID'] == 1 else 'assistant'
 
-                flag = False
-                for mark in ['～', '⁇', '✎', '↻']:
-                    if mark in single['text']:
-                        flag = True
-                        break
-                if flag:
-                    use_audio = True
-                else:
+                    flag = False
+                    for mark in ['～', '⁇', '✎', '↻']:
+                        if mark in single['text']:
+                            flag = True
+                            break
+                    if flag:
+                        use_audio = True
+                    else:
 
-                    use_audio = False   
-                    
-                if args.model == 'gpt4o_mini' and role == 'assistant':
-                    use_audio = False
-                          
-                content = []
-                if use_audio and 'hdTimeStart' in single and 'hdTimeEnd' in single:
-                    start = int(float(single['hdTimeStart']) * 1000)
-                    end = int(float(single['hdTimeEnd']) * 1000)
-                    audio_file_his = process_segment(main_audio, start, end)
-                    content.append({
-                        'type': 'audio',
-                        'audio': audio_file_his
+                        use_audio = False   
+                        
+                    if args.model == 'gpt4o_mini' and role == 'assistant':
+                        use_audio = False
+                            
+                    content = []
+                    if use_audio and 'hdTimeStart' in single and 'hdTimeEnd' in single:
+                        start = int(float(single['hdTimeStart']) * 1000)
+                        end = int(float(single['hdTimeEnd']) * 1000)
+                        audio_file_his = process_segment(main_audio, start, end)
+                        content.append({
+                            'type': 'audio',
+                            'audio': audio_file_his
+                        })
+                        print(f'Turn {idx}: Audio')
+                    else:
+                        content.append({
+                            'type': 'text',
+                            'text': single.get('text', '')
+                        })
+
+                        print(f'Turn {idx}: Text')
+                        
+                    conversation_history.append({
+                        'role': role,
+                        'content': content
                     })
-                    print(f'Turn {idx}: Audio')
-                else:
-                    content.append({
-                        'type': 'text',
-                        'text': single.get('text', '')
-                    })
-
-                    print(f'Turn {idx}: Text')
                     
-                conversation_history.append({
-                    'role': role,
-                    'content': content
-                })
-                
-                context_text += f"{role}: {single.get('text', '')}\n"
+                    context_text += f"{role}: {single.get('text', '')}\n"
             
 
             current_data = item['original_data']

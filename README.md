@@ -21,13 +21,15 @@ The data used in this project is available at [Harvard Dataverse](The dataset li
 ### Step 1: Get the Voice Assistant's Response
 To obtain the responses from the voice assistant model, run the following command:
 ```shell
-python main.py --model qwen2 --data single_domain_colloquial --split test --task IC
+python main.py --model qwen2 --data {DATA_DIR}/Spoken3MC/subset_json/single_domain_colloquial/test.json --split test --task IC --data_basedir {DATA_DIR}
 ```
 
 **Supported Arguments:**
 - `--model`: Specifies the model to use for generating responses. Replace `qwen2` with the model you want to test (e.g., "glm" "baichuan_audio" "baichuan_omni" "qwen2" "qwen2.5_omini" "minicpm" "naive2" "gpt4o_mini").
 - `--data`: Selects the subset of the dataset, which includes ["single_domain_colloquial" "single_domain_system" "multi_domain_colloquial" "multi_domain_system"]
 - `--task`: Selects the task of the benchmarking, which includes ["IC", "chat", "multimodality_chat"]
+- `--data_basedir`: Select the directory where the dataset is located.
+
 The logs will be saved in the `logs` directory, and the results will be automatically saved in the `results` directory.
 
 ### Step2: Automatic GPT-4 Evaluation
